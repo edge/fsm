@@ -81,7 +81,7 @@ func (st *State) Context() context.Context {
 	return st.ctx
 }
 
-// Do executes the transition by existing the previous state(TODO), and entering the new one.
+// Do executes the transition by exiting the previous state, and entering the new one.
 func (t *Transition) Do() {
 	if t.To.onEnterFunc != nil {
 		t.To.onEnterFunc(t.To)
