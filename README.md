@@ -28,7 +28,7 @@ f.NewState().From("INITIALIZING").To("READY").OnEnter(func(*fsm.State) {
 
 // Each state has a context that is closed before the state changes. You can use this with methods called within the state OnEnter method.
 f.NewState().From("FETCHING_DATA").To("STARTING_SERVER").OnEnter(func(s *fsm.State) {
-		doSomething(st.Context())
+	doSomething(st.Context())
 })
 
 // Handle async transitions.
