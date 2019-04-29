@@ -45,13 +45,13 @@ type Transition struct {
 	To   *State
 }
 
-// To asigns a Destination to the State.
+// To assigns a Destination to the State.
 func (st *State) To(dn string) *State {
 	st.Destination = dn
 	return st
 }
 
-// From asigns a Source to the State.
+// From assigns a Source to the State.
 func (st *State) From(src ...string) *State {
 	st.Source = src
 	return st
