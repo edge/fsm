@@ -7,8 +7,6 @@
 // DADI Decentralized Cloud
 // (c) 2019 DADI Cloud Ltd.
 
-// Package fsm is a Finite State Machine provider
-// based on https://github.com/adamkdean/fsm.
 package fsm
 
 import (
