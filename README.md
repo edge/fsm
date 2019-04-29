@@ -1,5 +1,6 @@
 # FSM
 [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/dadi/fsm)
+
 A Simple easy to use go Finite State Machine library. FSM is a programmatic map of whitelisted transitions, where each transition triggers a synchronous operation within the context of a State.
 
 ## Install
