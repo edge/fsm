@@ -11,8 +11,7 @@ go get github.com/dadi/fsm
 
 ## Usage
 
-```
-go
+```go
 // Create new instance of FSM with a context
 ctx := context.Background()
 f := fsm.New().WithContext(ctx)
