@@ -14,7 +14,7 @@ import (
 	"fmt"
 )
 
-// StateMachine is the finite state machine struct
+// StateMachine is the finite state machine struct.
 type StateMachine struct {
 	CurrentState *State
 	States       []*State
@@ -62,7 +62,7 @@ func (s *StateMachine) Transitions() <-chan *Transition {
 	return s.transitions
 }
 
-// OnEnter setups the function to be called when a state is entered
+// OnEnter setups the function to be called when a state is entered.
 func (st *State) OnEnter(f func(s *State)) *State {
 	st.onEnterFunc = f
 	return st
@@ -146,14 +146,14 @@ func (s *StateMachine) IsValidStateChange(name string) (*State, error) {
 	return st, fmt.Errorf("Invalid state change: %v > %v", s.CurrentState.Destination, st.Destination)
 }
 
-// Transition changes the state when permissable
+// Transition changes the state when permissible.
 func (s *StateMachine) Transition(to string) (err error) {
 	// Ignore transitions to the same state.
 	if s.Match(to) {
 		return
 	}
 
-	// Check if new state is valid
+	// Check if new state is valid.
 	state, err := s.IsValidStateChange(to)
 
 	if err != nil {
