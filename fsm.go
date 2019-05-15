@@ -76,7 +76,11 @@ func (st *State) Parallel(p bool) *State {
 
 // Context returns the states context.
 func (st *State) Context() context.Context {
-	return st.ctx
+	if st.ctx != nil {
+		return st.ctx
+	}
+
+	return context.Background()
 }
 
 // Do executes the transition by exiting the previous state, and entering the new one.
