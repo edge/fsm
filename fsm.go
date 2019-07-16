@@ -1,11 +1,5 @@
-//      _             _  _
-//   __| |  __ _   __| |(_)
-//  / _` | / _` | / _` || |
-// | (_| || (_| || (_| || |
-//  \__,_| \__,_| \__,_||_|
-//
-// DADI Decentralized Cloud
-// (c) 2019 DADI Cloud Ltd.
+// Edge Network
+// (c) 2019 Edge Network technologies Ltd.
 
 package fsm
 
