@@ -29,14 +29,19 @@ f.NewState().From("INITIALIZING").To("READY").OnEnter(func(*fsm.State) {
 }).Parallel(true)
 
 // Each state has a context that is closed before the state changes. You can use this with methods called within the state OnEnter method.
-f.NewState().From("FETCHING_DATA").To("STARTING_SERVER").OnEnter(func(s *fsm.State) {
+f.NewState().From("FETCHING_DATA").To("STARTING_SERVER").OnEnter(func(st *fsm.State) {
 	doSomething(st.Context())
 })
 
-// Handle async transitions.
-go func() {
-  for transition := range f.Transitions() {
-		transition.Do()
-	}
-}()
+// Run an action before each transition
+f.BeforeTransition(func(t *fsm.Transition) {
+	fmt.Printf(`Transition to %s`, t.To.Destination)
+})
+
+f.OnStart(func(st *fsm.State) {
+	runLaunchCode(st.Context())
+})
+
+// Start tells the state machine to enter the initial state.
+f.Start()
 ```

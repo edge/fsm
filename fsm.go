@@ -103,8 +103,8 @@ func (st *State) Context() context.Context {
 	return context.Background()
 }
 
-// Do executes the transition by exiting the previous state, and entering the new one.
-func (t *Transition) Do() {
+// do executes the transition by exiting the previous state, and entering the new one.
+func (t *Transition) do() {
 	if t.To.onEnterFunc != nil {
 		t.To.onEnterFunc(t.To)
 	}
@@ -219,7 +219,7 @@ func (s *StateMachine) Initialize() {
 					s.beforeFn(t)
 				}
 
-				t.Do()
+				t.do()
 			}
 		}
 	}()
@@ -260,7 +260,7 @@ func (s *StateMachine) Transition(to string) (err error) {
 	}
 
 	if state.parallel {
-		go tr.Do()
+		go tr.do()
 	} else {
 		if s.ctx != nil && s.ctx.Err() != nil {
 			return
