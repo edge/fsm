@@ -5,6 +5,7 @@ package fsm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 )
 
@@ -13,9 +14,14 @@ type StateMachine struct {
 	CurrentState *State
 	States       []*State
 	transitions  chan *Transition
+	// beforeFn runs before the state is changes.
+	beforeFn func(*Transition)
+	// onStart is the function called when the state machine starts.
+	onStart func(*State)
 
-	ctx    context.Context
-	cancel context.CancelFunc
+	initialized bool
+	ctx         context.Context
+	cancel      context.CancelFunc
 }
 
 // State contains state configuration.
@@ -27,10 +33,12 @@ type State struct {
 	onEnterFunc func(*State)
 
 	// parallel decides whnever the onEnterFunc should be called in a new goroutine.
-	parallel bool
-
-	ctx    context.Context
-	cancel context.CancelFunc
+	parallel  bool
+	isStart   bool
+	fromAny   bool
+	fromStart bool
+	ctx       context.Context
+	cancel    context.CancelFunc
 }
 
 // Transition contains transition information.
@@ -45,6 +53,18 @@ func (st *State) To(dn string) *State {
 	return st
 }
 
+// FromAny allows the state to be transitioned to from any other state.
+func (st *State) FromAny() *State {
+	st.fromAny = true
+	return st
+}
+
+// FromStart allows the state to be transitioned to from the starting state.
+func (st *State) FromStart() *State {
+	st.fromStart = true
+	return st
+}
+
 // From assigns a Source to the State.
 func (st *State) From(src ...string) *State {
 	st.Source = src
@@ -54,6 +74,12 @@ func (st *State) From(src ...string) *State {
 // Transitions returns the transition channels.
 func (s *StateMachine) Transitions() <-chan *Transition {
 	return s.transitions
+}
+
+// BeforeTransition sets an action to be called before state transition is executed.
+func (s *StateMachine) BeforeTransition(f func(*Transition)) {
+	// Store the method.
+	s.beforeFn = f
 }
 
 // OnEnter setups the function to be called when a state is entered.
@@ -77,8 +103,8 @@ func (st *State) Context() context.Context {
 	return context.Background()
 }
 
-// Do executes the transition by exiting the previous state, and entering the new one.
-func (t *Transition) Do() {
+// do executes the transition by exiting the previous state, and entering the new one.
+func (t *Transition) do() {
 	if t.To.onEnterFunc != nil {
 		t.To.onEnterFunc(t.To)
 	}
@@ -115,6 +141,31 @@ func (s *StateMachine) Exists() bool {
 	return s.CurrentState != nil
 }
 
+// OnStart defines a starting method.
+func (s *StateMachine) OnStart(f func(s *State)) {
+	s.onStart = f
+}
+
+// Start launches the state machine
+func (s *StateMachine) Start() error {
+	// Initialize if not yet initialized.
+	if !s.initialized {
+		s.Initialize()
+	}
+
+	if s.onStart == nil {
+		return errors.New("Finite State Machine is missing 'OnStart' method")
+	}
+
+	state := &State{isStart: true}
+	state.ctx, state.cancel = context.WithCancel(s.ctx)
+	s.CurrentState = state
+
+	s.onStart(state)
+
+	return nil
+}
+
 // Name returns the current States destination name.
 func (s *StateMachine) Name() string {
 	if s.Exists() {
@@ -131,7 +182,14 @@ func (s *StateMachine) IsValidStateChange(name string) (*State, error) {
 		return st, err
 	}
 
-	if !s.Exists() || st.Source[0] == "*" {
+	// This state accepts transitions from any other state.
+	if st.fromAny {
+		return st, nil
+	}
+
+	// The current state is the starting state
+	// and this state allows transitions from the starting state.
+	if s.CurrentState.isStart && st.fromStart {
 		return st, nil
 	}
 
@@ -142,6 +200,34 @@ func (s *StateMachine) IsValidStateChange(name string) (*State, error) {
 	}
 
 	return st, fmt.Errorf("Invalid state change: %v > %v", s.CurrentState.Destination, st.Destination)
+}
+
+// Initialize starts the transition process.
+func (s *StateMachine) Initialize() {
+	if s.initialized {
+		return
+	}
+
+	s.initialized = true
+
+	go func() {
+		for {
+			select {
+			case <-s.ctx.Done():
+				return
+			case t := <-s.transitions:
+				if s.ctx.Err() != nil {
+					return
+				}
+
+				if s.beforeFn != nil {
+					s.beforeFn(t)
+				}
+
+				t.do()
+			}
+		}
+	}()
 }
 
 // Transition changes the state when permissible.
@@ -175,8 +261,11 @@ func (s *StateMachine) Transition(to string) (err error) {
 	}
 
 	if state.parallel {
-		go tr.Do()
+		go tr.do()
 	} else {
+		if s.ctx != nil && s.ctx.Err() != nil {
+			return
+		}
 		s.transitions <- tr
 	}
 	s.CurrentState = state
