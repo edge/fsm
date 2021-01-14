@@ -18,7 +18,8 @@ go get github.com/edge/fsm
 ctx := context.Background()
 f := fsm.New().WithContext(ctx)
 
-// FromAny states are useful for transitioning to an Error, Shutdown or other universally accessible states.
+// FromAny states are useful for transitioning to
+// an Error, Shutdown or other universally accessible states.
 f.NewState().FromAny().To("ERROR").OnEnter(func(*fsm.State) {
 	// Do something
 })
@@ -33,7 +34,8 @@ f.NewState().FromStart().To("READY").OnEnter(func(*fsm.State) {
 	// Do something here
 })
 
-// Each state has a context that is closed before the state changes. You can use this with methods called within the state OnEnter method.
+// Each state has a context that is closed before the state changes.
+// You can use this with methods called within the state OnEnter method.
 f.NewState().From("FETCHING_DATA").To("STARTING_SERVER").OnEnter(func(st *fsm.State) {
 	doSomething(st.Context())
 })
