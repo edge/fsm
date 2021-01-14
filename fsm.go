@@ -148,6 +148,11 @@ func (s *StateMachine) OnStart(f func(s *State)) {
 
 // Start launches the state machine
 func (s *StateMachine) Start() error {
+	// Initialize if not yet initialized.
+	if !s.initialized {
+		s.Initialize()
+	}
+
 	if s.onStart == nil {
 		return errors.New("Finite State Machine is missing 'OnStart' method")
 	}
@@ -227,10 +232,6 @@ func (s *StateMachine) Initialize() {
 
 // Transition changes the state when permissible.
 func (s *StateMachine) Transition(to string) (err error) {
-	if !s.initialized {
-		s.Initialize()
-	}
-
 	// Ignore transitions to the same state.
 	if s.Match(to) {
 		return
