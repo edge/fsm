@@ -187,6 +187,10 @@ func (s *StateMachine) IsValidStateChange(name string) (*State, error) {
 		return st, nil
 	}
 
+	if s.CurrentState == nil {
+		return st, nil
+	}
+
 	// The current state is the starting state
 	// and this state allows transitions from the starting state.
 	if s.CurrentState.isStart && st.fromStart {
