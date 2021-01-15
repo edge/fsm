@@ -5,7 +5,6 @@ package fsm
 
 import (
 	"context"
-	"errors"
 	"fmt"
 )
 
@@ -16,8 +15,6 @@ type StateMachine struct {
 	transitions  chan *Transition
 	// beforeFn runs before the state is changes.
 	beforeFn func(*Transition)
-	// onStart is the function called when the state machine starts.
-	onStart func(*State)
 
 	initialized bool
 	ctx         context.Context
@@ -33,12 +30,10 @@ type State struct {
 	onEnterFunc func(*State)
 
 	// parallel decides whnever the onEnterFunc should be called in a new goroutine.
-	parallel  bool
-	isStart   bool
-	fromAny   bool
-	fromStart bool
-	ctx       context.Context
-	cancel    context.CancelFunc
+	parallel bool
+	fromAny  bool
+	ctx      context.Context
+	cancel   context.CancelFunc
 }
 
 // Transition contains transition information.
@@ -56,12 +51,6 @@ func (st *State) To(dn string) *State {
 // FromAny allows the state to be transitioned to from any other state.
 func (st *State) FromAny() *State {
 	st.fromAny = true
-	return st
-}
-
-// FromStart allows the state to be transitioned to from the starting state.
-func (st *State) FromStart() *State {
-	st.fromStart = true
 	return st
 }
 
@@ -141,29 +130,12 @@ func (s *StateMachine) Exists() bool {
 	return s.CurrentState != nil
 }
 
-// OnStart defines a starting method.
-func (s *StateMachine) OnStart(f func(s *State)) {
-	s.onStart = f
-}
-
 // Start launches the state machine
-func (s *StateMachine) Start() error {
+func (s *StateMachine) Start() {
 	// Initialize if not yet initialized.
 	if !s.initialized {
 		s.Initialize()
 	}
-
-	if s.onStart == nil {
-		return errors.New("Finite State Machine is missing 'OnStart' method")
-	}
-
-	state := &State{isStart: true}
-	state.ctx, state.cancel = context.WithCancel(s.ctx)
-	s.CurrentState = state
-
-	s.onStart(state)
-
-	return nil
 }
 
 // Name returns the current States destination name.
@@ -187,13 +159,8 @@ func (s *StateMachine) IsValidStateChange(name string) (*State, error) {
 		return st, nil
 	}
 
+	// There is no existing origin state so any entrypoint is allowed.
 	if s.CurrentState == nil {
-		return st, nil
-	}
-
-	// The current state is the starting state
-	// and this state allows transitions from the starting state.
-	if s.CurrentState.isStart && st.fromStart {
 		return st, nil
 	}
 
