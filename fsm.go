@@ -132,10 +132,30 @@ func (s *StateMachine) Exists() bool {
 
 // Start launches the state machine
 func (s *StateMachine) Start() {
-	// Initialize if not yet initialized.
-	if !s.initialized {
-		s.Initialize()
+	if s.initialized {
+		return
 	}
+
+	s.initialized = true
+
+	go func() {
+		for {
+			select {
+			case <-s.ctx.Done():
+				return
+			case t := <-s.transitions:
+				if s.ctx.Err() != nil {
+					return
+				}
+
+				if s.beforeFn != nil {
+					s.beforeFn(t)
+				}
+
+				t.do()
+			}
+		}
+	}()
 }
 
 // Name returns the current States destination name.
@@ -171,34 +191,6 @@ func (s *StateMachine) IsValidStateChange(name string) (*State, error) {
 	}
 
 	return st, fmt.Errorf("Invalid state change: %v > %v", s.CurrentState.Destination, st.Destination)
-}
-
-// Initialize starts the transition process.
-func (s *StateMachine) Initialize() {
-	if s.initialized {
-		return
-	}
-
-	s.initialized = true
-
-	go func() {
-		for {
-			select {
-			case <-s.ctx.Done():
-				return
-			case t := <-s.transitions:
-				if s.ctx.Err() != nil {
-					return
-				}
-
-				if s.beforeFn != nil {
-					s.beforeFn(t)
-				}
-
-				t.do()
-			}
-		}
-	}()
 }
 
 // Transition changes the state when permissible.
