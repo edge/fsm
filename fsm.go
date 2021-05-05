@@ -13,8 +13,10 @@ type StateMachine struct {
 	CurrentState *State
 	States       []*State
 	transitions  chan *Transition
-	// beforeFn runs before the state is changes.
+	// beforeFn runs before the state change.
 	beforeFn func(*Transition)
+	// afterFn runs after the state is change.
+	afterFn func(*Transition)
 
 	initialized bool
 	ctx         context.Context
@@ -71,6 +73,12 @@ func (s *StateMachine) BeforeTransition(f func(*Transition)) {
 	s.beforeFn = f
 }
 
+// AfterTransition sets an action to be called after state transition is executed.
+func (s *StateMachine) AfterTransition(f func(*Transition)) {
+	// Store the method.
+	s.afterFn = f
+}
+
 // OnEnter setups the function to be called when a state is entered.
 func (st *State) OnEnter(f func(s *State)) *State {
 	st.onEnterFunc = f
@@ -96,6 +104,18 @@ func (st *State) Context() context.Context {
 func (t *Transition) do() {
 	if t.To.onEnterFunc != nil {
 		t.To.onEnterFunc(t.To)
+	}
+}
+
+func (s *StateMachine) before(t *Transition) {
+	if s.beforeFn != nil {
+		s.beforeFn(t)
+	}
+}
+
+func (s *StateMachine) after(t *Transition) {
+	if s.afterFn != nil {
+		s.afterFn(t)
 	}
 }
 
@@ -148,11 +168,9 @@ func (s *StateMachine) Start() {
 					return
 				}
 
-				if s.beforeFn != nil {
-					s.beforeFn(t)
-				}
-
+				s.before(t)
 				t.do()
+				s.after(t)
 			}
 		}
 	}()
